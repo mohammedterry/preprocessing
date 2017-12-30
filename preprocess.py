@@ -1,12 +1,12 @@
 import os
 import collections
 
-class Tokeniser:
+class Preprocess:
     filters='!"#$%&()*+,-./:;<=>?@[\\]^_`{|}~\t\n'    
  
     def __init__(self, path = 'small_vocab', ordered = True, hashing = False, padding = True):  
         self.load(path = path, ordered = ordered)     
-        self.tokenise(hashing = hashing)
+        self.tokenise(hashing = hashing) 
         self.sequences = [self.sequence(sentence, padding = padding) for sentence in self.sentences]
 
     def load(self, path, ordered):
@@ -29,11 +29,17 @@ class Tokeniser:
         else: #number off according to frequency - e.g. 1 is most frequent word in vocab
             self.id2word = {i:w for i,w in zip(range(1,len(self.vocab) + 1), self.vocab)}
         self.word2id = {d[1]: d[0] for d in self.id2word.items()}
+        #alternatively, use sdr vectors to represent words
 
     def sequence(self, sentence, padding = True):
         pad = [] 
         if padding: pad = [0]*(self.max_length - len(sentence.split())) 
         return pad + [self.word2id[word.lower().strip(self.filters)] for word in sentence.split() if word not in self.filters]
+
+    def collocations(self):
+        #go through vocab using a sliding window of +/- n words
+        # return most commonly cooccuring / collocating words before and after each target word in vocab
+        # store results as list of tuples (target, pre, post)
 
     def display(self, s = 3, w = 10): 
         #s & w are number of sentences & words to display (-1 displays all)
@@ -49,5 +55,5 @@ class Tokeniser:
         print('...etc...')        
 
 
-T = Tokeniser()
-T.display()
+P = Preprocess()
+P.display()
