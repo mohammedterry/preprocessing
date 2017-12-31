@@ -5,11 +5,11 @@ class Preprocess:
     IGNORE='!"#$%&()*+,-./:;<=>?@[\\]^_`{|}~\t\n'    
     PAD = 0
 
-    def __init__(self, path = 'small_vocab', ordered = True, hashing = False, padding = True):  
+    def __init__(self, path = 'small_vocab', ordered = True, hashing = False, padding = False, window_size = 3):  
         self.load(path = path, ordered = ordered)     
         self.tokenise(hashing = hashing) 
         self.sequences = [self.sequence(sentence, padding = padding) for sentence in self.sentences]
-        self.collocations()
+        self.collocations(window_size = window_size)
         self.display()
 
     def load(self, path, ordered):
@@ -40,16 +40,19 @@ class Preprocess:
         if padding: pad = [self.PAD]*(self.max_length - len(sentence.split())) 
         return pad + [self.word2id[word.lower().strip(self.IGNORE)] for word in sentence.split()  if word not in self.IGNORE]
 
-    def collocations(self): #sliding window size = +/- 1
+    def collocations(self, window_size): #sliding window size = +/- n
         self.pre = {word:[] for word in self.vocab}
         self.post = {word:[] for word in self.vocab}
+        pad = [self.PAD]*window_size
         for sequence in self.sequences:
-            for i in range(2,len(sequence)):
-                pre,target,post = sequence[i-2], sequence[i-1], sequence[i] 
+            sequence = pad + sequence + pad
+            for i in range(window_size*2 + 1,len(sequence)+1):
+                window = sequence[i- (2*window_size + 1):i]
+                target = window[window_size]
                 if target != self.PAD:
                     target = self.id2word[target]
-                    self.pre[target].append(pre)
-                    self.post[target].append(post)
+                    self.pre[target].extend(window[:window_size])
+                    self.post[target].extend(window[window_size+1:])
         for a, b in zip(self.pre.items(), self.post.items()):
             c1, c2 = collections.Counter(a[1]), collections.Counter(b[1])
             self.pre[a[0]] = [self.id2word[word] for word, f in c1.most_common() if word != self.PAD if f > 10 ]            
