@@ -5,11 +5,11 @@ class Preprocess:
     IGNORE='!"#$%&()*+,-./:;<=>?@[\\]^_`{|}~\t\n'    
     PAD = 0
 
-    def __init__(self, path = 'small_vocab', ordered = True, hashing = False, padding = False, window_size = 3):  
+    def __init__(self, path = 'small_vocab', ordered = True, hashing = False, padding = False, window_size = 3, threshold = 0.05):  
         self.load(path = path, ordered = ordered)     
         self.tokenise(hashing = hashing) 
         self.sequences = [self.sequence(sentence, padding = padding) for sentence in self.sentences]
-        self.collocations(window_size = window_size)
+        self.collocations(window_size = window_size, threshold = threshold)
         self.display()
 
     def load(self, path, ordered):
@@ -40,7 +40,7 @@ class Preprocess:
         if padding: pad = [self.PAD]*(self.max_length - len(sentence.split())) 
         return pad + [self.word2id[word.lower().strip(self.IGNORE)] for word in sentence.split()  if word not in self.IGNORE]
 
-    def collocations(self, window_size): #sliding window size = +/- n
+    def collocations(self, window_size, threshold): #sliding window size = +/- n
         self.pre = {word:[] for word in self.vocab}
         self.post = {word:[] for word in self.vocab}
         pad = [self.PAD]*window_size
@@ -55,8 +55,9 @@ class Preprocess:
                     self.post[target].extend(window[window_size+1:])
         for a, b in zip(self.pre.items(), self.post.items()):
             c1, c2 = collections.Counter(a[1]), collections.Counter(b[1])
-            self.pre[a[0]] = [self.id2word[word] for word, f in c1.most_common() if word != self.PAD if f > 10 ]            
-            self.post[b[0]] = [self.id2word[word] for word, f in c2.most_common() if word != self.PAD if f > 10 ]            
+            tot1, tot2 = sum(c1.values()), sum(c2.values())
+            self.pre[a[0]] = [self.id2word[word] for word, f in c1.most_common() if word != self.PAD if f /tot1 > threshold ]            
+            self.post[b[0]] = [self.id2word[word] for word, f in c2.most_common() if word != self.PAD if f /tot2 > threshold]            
 
     def shift(self, sequence):
         return sequence[1:] + [self.PAD]
@@ -70,9 +71,9 @@ class Preprocess:
         print('{} words in total.'.format(self.wordcount))
         print('{} words is the length of the longest sentence.'.format(self.max_length))
         print(w, 'Most common words in the dataset:',[self.id2word[i] for i in range(1,w+1)])
-        r = self.vocab[w] 
-        print('Most common words found immediately before "{}":'.format(r),self.pre[r])
-        print('Most common words found immediately after "{}":'.format(r),self.post[r])
+        r = self.vocab[int(input('enter a number >'))] 
+        print('Most common words found before "{}":'.format(r),self.pre[r])
+        print('Most common words found after "{}":'.format(r),self.post[r])
         print()
         for i in range(s):
             print('Line {}:  {}'.format(i + 1, self.sentences[i]))
