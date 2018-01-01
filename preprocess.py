@@ -41,8 +41,7 @@ class Preprocess:
         return pad + [self.word2id[word.lower().strip(self.IGNORE)] for word in sentence.split()  if word not in self.IGNORE]
 
     def collocations(self, window_size, threshold): #sliding window size = +/- n
-        self.pre = {word:[] for word in self.vocab}
-        self.post = {word:[] for word in self.vocab}
+        self.context = {word:[[],[]] for word in self.vocab}
         pad = [self.PAD]*window_size
         for sequence in self.sequences:
             sequence = pad + sequence + pad
@@ -51,19 +50,17 @@ class Preprocess:
                 target = window[window_size]
                 if target != self.PAD:
                     target = self.id2word[target]
-                    self.pre[target].extend(window[:window_size])
-                    self.post[target].extend(window[window_size+1:])
-        for a, b in zip(self.pre.items(), self.post.items()):
-            c1, c2 = collections.Counter(a[1]), collections.Counter(b[1])
+                    self.context[target][0].extend(window[:window_size])
+                    self.context[target][1].extend(window[window_size+1:])
+        for a in self.context.items():
+            c1, c2 = collections.Counter(a[1][0]), collections.Counter(a[1][1])
             tot1, tot2 = sum(c1.values()), sum(c2.values())
-            self.pre[a[0]] = [self.id2word[word] for word, f in c1.most_common() if word != self.PAD if f /tot1 > threshold ]            
-            self.post[b[0]] = [self.id2word[word] for word, f in c2.most_common() if word != self.PAD if f /tot2 > threshold]     
-        np.save('pre.npy', self.pre) 
-        np.save('post.npy', self.post)
+            self.context[a[0]][0] = [self.id2word[word] for word, f in c1.most_common() if word != self.PAD if f /tot1 > threshold ]            
+            self.context[a[0]][1] = [self.id2word[word] for word, f in c2.most_common() if word != self.PAD if f /tot2 > threshold]         
+        np.save('context.npy', self.context)
 
     def load_collocations(self):
-        self.pre = np.load('pre.npy').item()
-        self.post = np.load('post.npy').item()
+        self.context = np.load('context.npy').item()
 
     def shift(self, sequence):
         return sequence[1:] + [self.PAD]
@@ -78,8 +75,8 @@ class Preprocess:
         print('{} words is the length of the longest sentence.'.format(self.max_length))
         print(w, 'Most common words in the dataset:',[self.id2word[i] for i in range(1,w+1)])
         r = self.vocab[int(input('enter a number >'))] 
-        print('Most common words found before "{}":'.format(r),self.pre[r])
-        print('Most common words found after "{}":'.format(r),self.post[r])
+        print('Most common words found before "{}":'.format(r),self.context[r][0])
+        print('Most common words found after "{}":'.format(r),self.context[r][1])
         print()
         for i in range(s):
             print('Line {}:  {}'.format(i + 1, self.sentences[i]))
