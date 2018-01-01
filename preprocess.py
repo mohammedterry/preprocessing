@@ -1,5 +1,6 @@
 import os
 import collections
+import numpy as np
 
 class Preprocess:
     IGNORE='!"#$%&()*+,-./:;<=>?@[\\]^_`{|}~\t\n'    
@@ -10,7 +11,6 @@ class Preprocess:
         self.tokenise(hashing = hashing) 
         self.sequences = [self.sequence(sentence, padding = padding) for sentence in self.sentences]
         self.collocations(window_size = window_size, threshold = threshold)
-        self.display()
 
     def load(self, path, ordered):
         input_file = os.path.join(path)
@@ -57,7 +57,13 @@ class Preprocess:
             c1, c2 = collections.Counter(a[1]), collections.Counter(b[1])
             tot1, tot2 = sum(c1.values()), sum(c2.values())
             self.pre[a[0]] = [self.id2word[word] for word, f in c1.most_common() if word != self.PAD if f /tot1 > threshold ]            
-            self.post[b[0]] = [self.id2word[word] for word, f in c2.most_common() if word != self.PAD if f /tot2 > threshold]            
+            self.post[b[0]] = [self.id2word[word] for word, f in c2.most_common() if word != self.PAD if f /tot2 > threshold]     
+        np.save('pre.npy', self.pre) 
+        np.save('post.npy', self.post)
+
+    def load_collocations(self):
+        self.pre = np.load('pre.npy').item()
+        self.post = np.load('post.npy').item()
 
     def shift(self, sequence):
         return sequence[1:] + [self.PAD]
@@ -79,6 +85,3 @@ class Preprocess:
             print('Line {}:  {}'.format(i + 1, self.sentences[i]))
             print('\tLine {}:  {}'.format(i + 1, self.sequences[i]))
         print('...etc...')        
-
-
-P = Preprocess()
