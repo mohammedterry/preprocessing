@@ -9,7 +9,8 @@ class Preprocess:
     def __init__(self, path = 'small_vocab', ordered = True, hashing = False, padding = False, window_size = 3, threshold = 0.05):  
         self.load(path = path, ordered = ordered)     
         self.tokenise(hashing = hashing) 
-        self.sequences = [self.sequence(sentence, padding = padding) for sentence in self.sentences]
+        self.sequences = [self.sequence(sentence) for sentence in self.sentences]
+        if padding: self.padding()
         self.collocations(window_size = window_size, threshold = threshold)
 
     def load(self, path, ordered):
@@ -35,10 +36,12 @@ class Preprocess:
         self.word2id = {d[1]: d[0] for d in self.id2word.items()}
         #alternatively, use sdr vectors to represent words
 
-    def sequence(self, sentence, padding = True):
-        pad = [] 
-        if padding: pad = [self.PAD]*(self.max_length - len(sentence.split())) 
-        return pad + [self.word2id[word.lower().strip(self.IGNORE)] for word in sentence.split()  if word not in self.IGNORE]
+    def sequence(self, sentence):
+        return [self.word2id[word.lower().strip(self.IGNORE)] for word in sentence.split() if word not in self.IGNORE]
+
+    def padding(self):
+        for i in range(len(self.sequences)):
+            self.sequences[i] += [self.PAD]*(self.max_length - len(self.sequences[i])) 
 
     def collocations(self, window_size, threshold): #sliding window size = +/- n
         self.context = {word:[[],[]] for word in self.vocab}
